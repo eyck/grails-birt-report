@@ -1,0 +1,1 @@
+This is a placeholder. To build the plugin the jars of the BIRT runtime need to be copied here.
