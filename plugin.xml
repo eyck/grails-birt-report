@@ -1,9 +1,9 @@
-<plugin name='birt-report' version='3.7.2.0' grailsVersion='2.0.1 &gt; *'>
+<plugin name='birt-report' version='4.2.0.1' grailsVersion='2.0.4 &gt; *'>
   <author>Eyck Jentzsch</author>
   <authorEmail>eyck@jepemuc.de</authorEmail>
   <title>Birt Reporting Plugin</title>
   <description>This plugin makes it easy to integrate the Birt reporting engine (runtime component) into your Grails application.
-Currently BIRT 3.7.2 is used.
+Currently BIRT 4.2.0 is used.
 </description>
   <documentation>http://grails.org/plugin/birt-report</documentation>
   <type>BirtReportGrailsPlugin</type>
