@@ -1,5 +1,5 @@
 class BirtReportGrailsPlugin {
-    def version = "4.2.0.1"
+    def version = "4.2.1.0"
     def dependsOn = [:]
 
     // TODO Fill in these fields
@@ -8,7 +8,7 @@ class BirtReportGrailsPlugin {
     def title = "Birt Reporting Plugin"
     def description = '''\
 This plugin makes it easy to integrate the Birt reporting engine (runtime component) into your Grails application.
-Currently BIRT 4.2.0 is used.
+Currently BIRT 4.2.1 is used.
 '''
 
     // URL to the plugin's documentation
