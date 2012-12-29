@@ -1,0 +1,6 @@
+How to build
+============
+- copy the lib dir contents of the BIRT runtime samples into the lib folder
+- remove the org.w3c.dom package from the org.eclipse.birt.runtime bundle by modifying the jar (unpack, delete and pack)
+  -> this is a know problem already filed as a bug: https://bugs.eclipse.org/bugs/show_bug.cgi?id=383926
+- run 'grails publish-plugin --no-scm'

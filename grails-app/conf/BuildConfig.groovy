@@ -1,7 +1,6 @@
 grails.project.class.dir = "target/classes"
 grails.project.test.class.dir = "target/test-classes"
 grails.project.test.reports.dir = "target/test-reports"
-//grails.project.war.file = "target/${appName}-${appVersion}.war"
 grails.project.dependency.resolution = {
     // inherit Grails' default dependencies
     inherits("global") {
@@ -16,6 +15,5 @@ grails.project.dependency.resolution = {
     dependencies {
       // specify dependencies here under either 'build', 'compile', 
       // 'runtime', 'test' or 'provided' scopes eg.
-      compile 'org.eclipse.birt.runtime:org.eclipse.birt.runtime:4.2.1'
    }
 }
