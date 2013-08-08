@@ -77,3 +77,7 @@
 /org.w3c.dom.smil_*
 /org.w3c.dom.svg_*
 /Tidy.jar
+/javax.xml.stream_1.0.1.v201004272200.jar
+/org.apache.commons.logging_1.1.1.v201101211721.jar
+/org.apache.poi_3.9.0.v201303080712.jar
+/org.eclipse.orbit.mongodb_2.10.1.v20130422-1135.jar
