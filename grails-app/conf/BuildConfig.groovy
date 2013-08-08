@@ -10,10 +10,12 @@ grails.project.dependency.resolution = {
     log "warn"
     repositories {
 		  grailsRepo "http://grails.org/plugins"
-		  mavenRepo "https://oss.sonatype.org/content/repositories/releases"
+//		  mavenRepo "https://oss.sonatype.org/content/repositories/releases"
+//		  mavenRepo "http://localhost:8081/nexus/content/repositories/itjw"
     }
     dependencies {
       // specify dependencies here under either 'build', 'compile', 
       // 'runtime', 'test' or 'provided' scopes eg.
+//		compile 'org.eclipse.birt.runtime:org.eclipse.birt.runtime:4.2.1a'
    }
 }

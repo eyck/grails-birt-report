@@ -229,14 +229,42 @@ class BirtReportService implements InitializingBean, ApplicationContextAware {
      *  @return List<Map>
      */
     def getReportProperties(reportName, userProps) {
-        log.trace "Function: getReportProperties(${reportName}, ${userProps})"
+		getReportProperties(reportName, null, userProps)
+	}
+    /**
+     *  Returns a map containing the properties of a report design as
+     *  name/value pairs. The properties contain the BIRT standart properties:<ul>
+     *  <li>IReportRunnable.AUTHOR</li>
+     *  <li>IReportRunnable.BASE_PROP</li>
+     *  <li>IReportRunnable.COMMENTS</li>
+     *  <li>IReportRunnable.CREATEDBY</li>
+     *  <li>IReportRunnable.DESCRIPTION</li>
+     *  <li>IReportRunnable.HELP_GUIDE</li>
+     *  <li>IReportRunnable.REFRESH_RATE</li>
+     *  <li>IReportRunnable.TITLE</li>
+     *  <li>IReportRunnable.UNITS</li></ul>
+     *  and 3 custom ones:<ul>
+     *  <li>report name</li>
+     *  <li>report design name</li>
+     *  <li>absolute file name (including full path)</li></ul>
+     *  and user properties which are specified by the userProps
+     *
+     *  @param reportName
+     *  @param inputStream the input stream containing the report, optionally null
+     *  @param userProps
+     *  @return List<Map>
+     */
+    def getReportProperties(reportName, inputStream, userProps) {
+        log.trace "Function: getReportProperties(${reportName}, ${inputStream}, ${userProps})"
         def props = [:]
         def reportFileName = reportHome + File.separator + reportName + REPORT_EXT
         def propnames = userProps ? userProps.keySet() : []
         propnames += [IReportRunnable.AUTHOR, IReportRunnable.BASE_PROP, IReportRunnable.COMMENTS, IReportRunnable.CREATEDBY, IReportRunnable.DESCRIPTION, IReportRunnable.HELP_GUIDE, IReportRunnable.REFRESH_RATE, IReportRunnable.TITLE, IReportRunnable.UNITS]
         try {
             //Open report design
-            IReportRunnable design = BirtEngineFactory.engine?.openReportDesign(reportFileName);
+            IReportRunnable design = inputStream? 
+				BirtEngineFactory.engine?.openReportDesign(reportName, inputStream):
+				BirtEngineFactory.engine?.openReportDesign(reportFileName)
             if (!design) return props
             propnames.each {
                 def prop = design.getProperty(it)
@@ -271,6 +299,25 @@ class BirtReportService implements InitializingBean, ApplicationContextAware {
      *  @return List
      */
     def getReportParams(reportName) {
+		getReportParams(reportName, null)
+	}
+    /**
+     *  Extracts the report parameters of a report design. The returned list contains a map for each parameter
+     *  containing:<ul>
+     *  <li>name</li>
+     *  <li>type</li>
+     *  <li>controlType</li>
+     *  <li>defaultVal</li>
+     *  <li>helpText</li>
+     *  <li>promptText</li>
+     *  <li>allowBlank</li>
+     *  <li>listEntries (a list conaining the possibe values for restricted types)</li></ul>
+     *
+     *  @param reportName
+     *  @param inputStream the input stream containing the report, optionally null
+     *  @return List
+     */
+    def getReportParams(reportName, inputStream) {
         log.trace "Function: getReportParams(${reportName})"
         def reportParams = []
         def reportFileName = reportHome + File.separator + reportName + REPORT_EXT
@@ -279,7 +326,9 @@ class BirtReportService implements InitializingBean, ApplicationContextAware {
             //Open report design
             // def engine = BirtEngineFactory.engine
             if (!BirtEngineFactory.engine) return reportParams
-            IReportRunnable design = BirtEngineFactory.engine.openReportDesign(reportFileName)
+            IReportRunnable design = inputStream? 
+				BirtEngineFactory.engine?.openReportDesign(reportName, inputStream):
+				BirtEngineFactory.engine?.openReportDesign(reportFileName)
             IGetParameterDefinitionTask task = BirtEngineFactory.engine.createGetParameterDefinitionTask(design)
 			task.locale=getLocale()
             if(useGrailsDatasource) task.getAppContext().put("OdaJDBCDriverPassInConnection", dataSource.getConnection());
@@ -328,6 +377,19 @@ class BirtReportService implements InitializingBean, ApplicationContextAware {
     def getReportParamNames(reportName) {
         log.trace "Function: getReportParamNames(${reportName})"
         def params = getReportParams(reportName)
+        return params.name
+    }
+
+    /**
+     *  Extracts the parameter names of a report design as a list of Strings
+     *
+     *  @param reportName
+     *  @param inputStream the input stream containing the report, optionally null
+     *  @return List
+     */
+    def getReportParamNames(reportName, inputStream) {
+        log.trace "Function: getReportParamNames(${reportName})"
+        def params = getReportParams(reportName, inputStream)
         return params.name
     }
 
@@ -477,13 +539,28 @@ class BirtReportService implements InitializingBean, ApplicationContextAware {
      * @return ByteArrayOutputStream
      */
     def runAndRender(reportName, parameters, renderOptions, Locale locale = null) {
+		runAndRender(reportName, null, parameters, renderOptions, locale)
+	}
+    /**
+     * Runs and renders a report design into the format specified by renderOptions. Parameters are specified as
+     * name/value pairs and will be parsed (by BIRT) into the appropriate format.
+     *
+     * @param reportName
+     * @param inputStream the input stream containing the report, optionally null
+     * @param parameters
+     * @param renderOptions
+     * @return ByteArrayOutputStream
+     */
+    def runAndRender(reportName, inputStream, parameters, renderOptions, Locale locale = null) {
         log.trace "Function: runAndRender(${reportName}, ${parameters}, ${renderOptions})"
         def reportFileName = reportHome + File.separator + reportName + REPORT_EXT
         log.debug "Parameters are ${parameters}"
         // def engine = BirtEngineFactory.engine
         if (!BirtEngineFactory.engine) return null
-        //Open report design
-        IReportRunnable design = BirtEngineFactory.engine.openReportDesign(reportFileName)
+		//Open report design
+		IReportRunnable design = inputStream? 
+			BirtEngineFactory.engine?.openReportDesign(reportName, inputStream):
+			BirtEngineFactory.engine?.openReportDesign(reportFileName)
         //create task to run and render report
         IRunAndRenderTask task = BirtEngineFactory.engine.createRunAndRenderTask(design)
 		task.locale=locale?:getLocale()
@@ -513,13 +590,28 @@ class BirtReportService implements InitializingBean, ApplicationContextAware {
      * @param reportDocumentName
      */
     def run(reportName, parameters, reportDocumentName, Locale locale = null) {
+		run(reportName, parameters, reportDocumentName, locale)
+	}
+	
+    /**
+     * Runs a report design and generates a reportDocument with the given name. Parameters are specified as
+     * name/value pairs and will be parsed (by BIRT) into the appropriate format.
+     *
+     * @param reportName
+     * @param inputStream the input stream containing the report, optionally null
+     * @param parameters
+     * @param reportDocumentName
+     */
+    def run(reportName, inputStream, parameters, reportDocumentName, Locale locale = null) {
         log.trace "Function: run(${reportName}, ${parameters}, ${reportDocumentName})"
         def reportFileName = reportHome + File.separator + reportName + REPORT_EXT
         log.debug "Parameters are ${parameters}"
         // def engine = BirtEngineFactory.engine
         if (!BirtEngineFactory.engine) return null
         //Open report design
-        IReportRunnable design = BirtEngineFactory.engine.openReportDesign(reportFileName)
+		IReportRunnable design = inputStream? 
+			BirtEngineFactory.engine?.openReportDesign(reportName, inputStream):
+			BirtEngineFactory.engine?.openReportDesign(reportFileName)
         //create task to run and render report
         IRunTask task = BirtEngineFactory.engine.createRunTask(design)
 		task.locale=locale?:getLocale()
@@ -545,6 +637,17 @@ class BirtReportService implements InitializingBean, ApplicationContextAware {
      * @param reportDocumentName
      */
     def render(reportDocumentName, parameters, renderOptions, Locale locale = null) {
+		render(reportDocumentName, null, parameters, renderOptions,  locale)
+	}
+    /**
+     * Renders a report document into the format specified by renderOptions. Parameters are specified as
+     * name/value pairs and will be parsed (by BIRT) into the appropriate format.
+     *
+     * @param reportDocumentName
+     * @param parameters
+     * @param reportDocumentName
+     */
+    def render(reportDocumentName, inputStream, parameters, renderOptions, Locale locale = null) {
         log.trace "Function: render(${reportDocumentName}, ${renderOptions})"
         if (!BirtEngineFactory.engine) return null
         //Open report design

@@ -12,7 +12,6 @@ Currently BIRT 4.2.1 is used.
   </resources>
   <repositories>
     <repository name='http://grails.org/plugins' url='http://grails.org/plugins' />
-    <repository name='https://oss.sonatype.org/content/repositories/releases' url='https://oss.sonatype.org/content/repositories/releases/' />
     <repository name='grailsCentral' url='http://plugins.grails.org' />
     <repository name='http://repo.grails.org/grails/plugins' url='http://repo.grails.org/grails/plugins/' />
     <repository name='http://repo.grails.org/grails/core' url='http://repo.grails.org/grails/core/' />
