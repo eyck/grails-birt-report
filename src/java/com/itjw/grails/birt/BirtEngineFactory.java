@@ -1,3 +1,4 @@
+package com.itjw.grails.birt;
 import org.apache.log4j.Logger;
 import org.eclipse.birt.core.exception.BirtException;
 import org.eclipse.birt.core.framework.Platform;

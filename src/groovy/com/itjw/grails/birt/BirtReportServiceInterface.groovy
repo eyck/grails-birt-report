@@ -1,3 +1,4 @@
+package com.itjw.grails.birt
 interface BirtReportServiceInterface {
     // where are the reports located
     def getReportHome()

@@ -1,3 +1,4 @@
+package com.itjw.grails.birt
 import grails.util.Environment
 
 import java.util.logging.Level
