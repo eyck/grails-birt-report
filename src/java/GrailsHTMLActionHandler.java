@@ -4,10 +4,8 @@ import java.net.URLEncoder;
 import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
-import java.util.logging.Logger;
 
 import org.eclipse.birt.report.engine.api.HTMLActionHandler;
-import org.eclipse.birt.report.engine.api.HTMLRenderOption;
 import org.eclipse.birt.report.engine.api.IAction;
 import org.eclipse.birt.report.engine.api.IReportDocument;
 import org.eclipse.birt.report.engine.api.script.IReportContext;
@@ -16,12 +14,6 @@ import org.eclipse.birt.report.engine.api.script.IReportContext;
  * HTML action handler for url generation.
  */
 class GrailsHTMLActionHandler extends HTMLActionHandler {
-
-    /**
-     * Logger for this handler.
-     */
-
-    protected Logger log = Logger.getLogger(GrailsHTMLActionHandler.class.getName());
 
     /**
      * URL parameter name that gives the format to display the report, html or
@@ -62,13 +54,13 @@ class GrailsHTMLActionHandler extends HTMLActionHandler {
     /**
      * Document instance.
      */
-    protected IReportDocument document = null;
+    protected IReportDocument document;
 
     /**
      * Locale of the requester.
      */
 
-    protected Locale locale = null;
+    protected Locale locale;
 
     /**
      * Page number of the action requester.
@@ -96,12 +88,12 @@ class GrailsHTMLActionHandler extends HTMLActionHandler {
     /**
      * the preferred format of the host
      */
-    protected String hostFormat = null;
+    protected String hostFormat;
 
     /**
      * the base URL for all formats
      */
-    protected String baseUrl = null;
+    protected String baseUrl;
 
     /**
      * Constructor.
@@ -113,7 +105,6 @@ class GrailsHTMLActionHandler extends HTMLActionHandler {
      * Constructor.
      */
     public GrailsHTMLActionHandler(String hostFormat) {
-        this.baseUrl = null;
         this.hostFormat = hostFormat;
     }
 
@@ -173,27 +164,28 @@ class GrailsHTMLActionHandler extends HTMLActionHandler {
       * org.eclipse.birt.report.engine.api.script.IReportContext)
       */
 
+    @Override
     public String getURL(IAction actionDefn, IReportContext context) {
         if (actionDefn == null) return null;
         String actionString = null;
         switch (actionDefn.getType()) {
             case IAction.ACTION_BOOKMARK: {
                 actionString = buildBookmarkAction(actionDefn, context);
-				break;
+                break;
             }
             case IAction.ACTION_HYPERLINK: {
                 actionString = actionDefn.getActionString();
-				break;
+                break;
             }
             case IAction.ACTION_DRILLTHROUGH: {
                 actionString = buildDrillAction(actionDefn, context);
-				break;
+                break;
             }
         }
         if (baseUrl != null && actionString != null)
             return baseUrl + "/" + actionString;
-        else
-            return actionString;
+
+        return actionString;
     }
 
     /*
@@ -203,6 +195,7 @@ class GrailsHTMLActionHandler extends HTMLActionHandler {
       * org.eclipse.birt.report.engine.api.HTMLActionHandler#getURL(org.eclipse
       * .birt.report.engine.api.IAction, java.lang.Object)
       */
+    @Override
     public String getURL(IAction actionDefn, Object context) {
         if (actionDefn == null)
             return null;
@@ -243,17 +236,17 @@ class GrailsHTMLActionHandler extends HTMLActionHandler {
         // if (baseURL.lastIndexOf(IBirtConstants.SERVLET_PATH_FRAMESET) > 0) {
         // // In frameset mode, use javascript function to fire Ajax request to
         // // link to internal bookmark
-        //			String func = "catchBookmark('" + htmlEncode(bookmark) + "');"; //$NON-NLS-1$ //$NON-NLS-2$
-        //			return "javascript:try{" + func + "}catch(e){parent." + func + "};"; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+        //            String func = "catchBookmark('" + htmlEncode(bookmark) + "');"; //$NON-NLS-1$ //$NON-NLS-2$
+        //            return "javascript:try{" + func + "}catch(e){parent." + func + "};"; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
         // } else if (baseURL.lastIndexOf(IBirtConstants.SERVLET_PATH_RUN) > 0)
         // {
         // // In run mode, append bookmark at the end of URL
-        //			String func = "catchBookmark('" + bookmark + "');"; //$NON-NLS-1$ //$NON-NLS-2$
-        //			return "javascript:try{" + func + "}catch(e){parent." + func + "};"; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+        //            String func = "catchBookmark('" + bookmark + "');"; //$NON-NLS-1$ //$NON-NLS-2$
+        //            return "javascript:try{" + func + "}catch(e){parent." + func + "};"; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
         // }
         //
         // // Save the URL String
-        // StringBuffer link = new StringBuffer();
+        // StringBuilder link = new StringBuilder();
         //
         // boolean realBookmark = false;
         //
@@ -286,18 +279,18 @@ class GrailsHTMLActionHandler extends HTMLActionHandler {
         // link.append(reportName);
         // } else {
         // // its an iternal bookmark
-        //			return "#" + action.getActionString(); //$NON-NLS-1$
+        //            return "#" + action.getActionString(); //$NON-NLS-1$
         // }
         //
         // if (realBookmark) {
-        //			link.append("#"); //$NON-NLS-1$
+        //            link.append("#"); //$NON-NLS-1$
         // link.append(bookmark);
         // } else {
         // link.append(getQueryParameterString(PARAM_BOOKMARK, bookmark));
         //
         // // Bookmark is TOC name.
         // if (!action.isBookmark())
-        //				link.append(getQueryParameterString(PARAM_ISTOC, "true")); //$NON-NLS-1$
+        //                link.append(getQueryParameterString(PARAM_ISTOC, "true")); //$NON-NLS-1$
         // }
         //
         // return link.toString();
@@ -314,7 +307,7 @@ class GrailsHTMLActionHandler extends HTMLActionHandler {
         if (action == null || context == null)
             return null;
 
-        StringBuffer link = new StringBuffer();
+        StringBuilder link = new StringBuilder();
         String reportName = getReportShortName(context, action);
 
         if (reportName != null && !reportName.equals("")) //$NON-NLS-1$
@@ -353,8 +346,8 @@ class GrailsHTMLActionHandler extends HTMLActionHandler {
             String format = action.getFormat();
             if (format == null || format.length() == 0)
                 format = hostFormat;
-//			if (format == null || format.length() == 0)
-//				format = HTMLRenderOption.OUTPUT_FORMAT_HTML;
+//            if (format == null || format.length() == 0)
+//                format = HTMLRenderOption.OUTPUT_FORMAT_HTML;
             if (format != null && format.length() > 0) {
                 link.append(getQueryParameterString(PARAM_FORMAT, format, true));
             }
@@ -366,9 +359,9 @@ class GrailsHTMLActionHandler extends HTMLActionHandler {
             // // In pdf format, don't support bookmark as
             // // parameter
             // if (IBirtConstants.PDF_RENDER_FORMAT.equalsIgnoreCase(format)) {
-            //						link.append("#"); //$NON-NLS-1$
+            //                        link.append("#"); //$NON-NLS-1$
             // // use TOC to find bookmark, only link to document file
-            //						if (!action.isBookmark() && reportName.toLowerCase().endsWith(".rptdocument")) //$NON-NLS-1$
+            //                        if (!action.isBookmark() && reportName.toLowerCase().endsWith(".rptdocument")) //$NON-NLS-1$
             // {
             // InputOptions options = new InputOptions();
             // options.setOption(InputOptions.OPT_LOCALE, locale);
@@ -383,7 +376,7 @@ class GrailsHTMLActionHandler extends HTMLActionHandler {
             //
             // // Bookmark is TOC name.
             // if (!action.isBookmark())
-            //							link.append(ParameterAccessor.getQueryParameterString(PARAM_ISTOC, "true")); //$NON-NLS-1$
+            //                            link.append(ParameterAccessor.getQueryParameterString(PARAM_ISTOC, "true")); //$NON-NLS-1$
             // }
             //
             // } catch (UnsupportedEncodingException e) {
@@ -429,7 +422,7 @@ class GrailsHTMLActionHandler extends HTMLActionHandler {
     }
 
     public String getQueryParameterString(String paramName, String value, boolean separator) {
-        StringBuffer b = new StringBuffer();
+        StringBuilder b = new StringBuilder();
         if (separator)
             b.append(PARAMETER_SEPARATOR);
         b.append(paramName);
@@ -453,7 +446,7 @@ class GrailsHTMLActionHandler extends HTMLActionHandler {
             return null;
         }
 
-        StringBuffer sbHtmlEncoded = new StringBuffer();
+        StringBuilder sbHtmlEncoded = new StringBuilder();
         final char chrarry[] = s.toCharArray();
 
         for (int i = 0; i < chrarry.length; i++) {
@@ -495,14 +488,13 @@ class GrailsHTMLActionHandler extends HTMLActionHandler {
                     break;
                 case '/':
                     sbHtmlEncoded.append("&#47;"); //$NON-NLS-1$
-				break;
-			default:
-				sbHtmlEncoded.append(c);
-			}
-		}
+                break;
+            default:
+                sbHtmlEncoded.append(c);
+            }
+        }
 
-		sHtmlEncoded = sbHtmlEncoded.toString();
-		return sHtmlEncoded;
-	}
-
+        sHtmlEncoded = sbHtmlEncoded.toString();
+        return sHtmlEncoded;
+    }
 }
