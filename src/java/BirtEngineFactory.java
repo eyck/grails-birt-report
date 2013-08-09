@@ -1,17 +1,19 @@
-import org.eclipse.birt.core.framework.Platform;
-import org.eclipse.birt.core.exception.BirtException;
-import org.eclipse.birt.report.engine.api.*;
 import org.apache.log4j.Logger;
-
-import java.util.logging.Level;
+import org.eclipse.birt.core.exception.BirtException;
+import org.eclipse.birt.core.framework.Platform;
+import org.eclipse.birt.report.engine.api.EngineConfig;
+import org.eclipse.birt.report.engine.api.IRenderOption;
+import org.eclipse.birt.report.engine.api.IReportEngine;
+import org.eclipse.birt.report.engine.api.IReportEngineFactory;
+import org.eclipse.birt.report.engine.api.RenderOption;
 
 public class BirtEngineFactory {
 
     private static Logger log = Logger.getLogger(BirtEngineFactory.class);
 
-    private static IReportEngineFactory factory = null;
+    private static IReportEngineFactory factory;
     private static EngineConfig engineConfig;
-    private static IReportEngine birtEngine = null;
+    private static IReportEngine birtEngine;
 
     public static synchronized void init(EngineConfig config) {
         if (birtEngine == null) {
@@ -42,6 +44,7 @@ public class BirtEngineFactory {
         birtEngine = null;
     }
 
+    @Override
     public Object clone() throws CloneNotSupportedException {
         throw new CloneNotSupportedException();
     }

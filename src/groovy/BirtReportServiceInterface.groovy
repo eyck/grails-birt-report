@@ -1,4 +1,4 @@
-public interface BirtReportServiceInterface {
+interface BirtReportServiceInterface {
     // where are the reports located
     def getReportHome()
     // where is the BIRT platform installed

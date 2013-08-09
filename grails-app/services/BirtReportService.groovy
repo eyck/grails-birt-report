@@ -1,37 +1,35 @@
+import grails.util.Environment
+
+import java.util.logging.Level
+
+import javax.servlet.ServletContext
 import javax.servlet.ServletException
-import java.util.logging.Level;
-import org.apache.log4j.Logger;
-// to use the birt engine
-import java.io.File
-import java.io.ByteArrayOutputStream
+
+import org.apache.log4j.Logger
 import org.eclipse.birt.core.data.DataTypeUtil
 import org.eclipse.birt.core.exception.BirtException
-import org.eclipse.birt.core.framework.PlatformFileContext;
-// to get application context
-import org.springframework.beans.BeansException
+import org.eclipse.birt.core.framework.PlatformFileContext
+import org.eclipse.birt.data.engine.api.DataEngine
+import org.eclipse.birt.report.engine.api.*
 import org.springframework.beans.factory.InitializingBean
 import org.springframework.context.ApplicationContext
 import org.springframework.context.ApplicationContextAware
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.servlet.support.RequestContextUtils as RCU;
-import org.eclipse.birt.report.engine.api.*
-import javax.servlet.ServletContext
-import org.eclipse.birt.data.engine.api.DataEngine
-import grails.util.GrailsUtil
+import org.springframework.web.context.request.RequestContextHolder
+import org.springframework.web.servlet.support.RequestContextUtils as RCU
 
 class BirtReportService implements InitializingBean, ApplicationContextAware {
 
-    static Logger log = Logger.getLogger(BirtReportService.class)
+    static final Logger log = Logger.getLogger(BirtReportService)
 
     private final String REPORT_EXT = ".rptdesign"
 
-    private static supportedImageFormats = "PNG;GIF;JPG;BMP"
+    private static String supportedImageFormats = "PNG;GIF;JPG;BMP"
 
     private boolean svgEnabled = false
 
     static transactional = false
 
-    ApplicationContext appCtx
+    ApplicationContext applicationContext
 
     def dataSource
 
@@ -51,45 +49,42 @@ class BirtReportService implements InitializingBean, ApplicationContextAware {
 
     def defaultFormat = "inline"
 
-    def void setApplicationContext(ApplicationContext arg0) throws BeansException {
-        appCtx = arg0;
-    }
-
     void afterPropertiesSet() {
-        ServletContext sc = appCtx?.servletContext
+        ServletContext sc = applicationContext?.servletContext
         if (!sc) {
             log.error "Could not derive servlet context, report generation disabled"
             return
         }
         reportHome = sc.getRealPath("/Reports")
-        if (grailsApplication.config.birt.reportHome) {
-            if (grailsApplication.config.birt.reportHome[0] == '/' || grailsApplication.config.birt.reportHome[1] == ':') {
-                reportHome = grailsApplication.config.birt.reportHome
+        def birtConfig = grailsApplication.config.birt
+        if (birtConfig.reportHome) {
+            if (birtConfig.reportHome[0] == '/' || birtConfig.reportHome[1] == ':') {
+                reportHome = birtConfig.reportHome
             } else {
-                reportHome = sc.getRealPath(grailsApplication.config.birt.reportHome)
+                reportHome = sc.getRealPath(birtConfig.reportHome)
             }
         }
         log.info "reportHome is ${reportHome}"
-        if(grailsApplication.config.birt.useGrailsDatasource)
+        if(birtConfig.useGrailsDatasource)
             useGrailsDatasource = true
         log.info "${useGrailsDatasource?'':'not '}using grails data source"
-        if (grailsApplication.config.birt.generateAbsoluteBaseURL)
+        if (birtConfig.generateAbsoluteBaseURL)
             generateAbsoluteBaseURL = true
-        if (grailsApplication.config.birt.baseUrl) {
-            baseURL = grailsApplication.config.birt.baseUrl
+        if (birtConfig.baseUrl) {
+            baseURL = birtConfig.baseUrl
             log.info "baseURL is ${baseURL}"
         } else {
             log.info "generated baseURL will ${generateAbsoluteBaseURL?'':'not '}be absolute"
         }
         baseImageURL = sc.contextPath + "/images/" + "rpt-img"
         imageDir = sc.getRealPath("/images/" + "rpt")
-        if (grailsApplication.config.birt.imageUrl) {
-            if (grailsApplication.config.birt.imageUrl[0] == '/'){
-                baseImageURL = sc.contextPath + grailsApplication.config.birt.imageUrl
-                imageDir = sc.getRealPath(grailsApplication.config.birt.imageUrl)
+        if (birtConfig.imageUrl) {
+            if (birtConfig.imageUrl[0] == '/'){
+                baseImageURL = sc.contextPath + birtConfig.imageUrl
+                imageDir = sc.getRealPath(birtConfig.imageUrl)
             } else {
-                baseImageURL = sc.contextPath + "/" + grailsApplication.config.birt.imageUrl
-                imageDir = sc.getRealPath("/" + grailsApplication.config.birt.imageUrl)
+                baseImageURL = sc.contextPath + "/" + birtConfig.imageUrl
+                imageDir = sc.getRealPath("/" + birtConfig.imageUrl)
             }
         }
         def imgDir = new File(imageDir)
@@ -99,7 +94,7 @@ class BirtReportService implements InitializingBean, ApplicationContextAware {
         }
         log.info "baseImageUrl is ${baseImageURL} and points to ${imageDir}"
 
-		System.setProperty( "RUN_UNDER_ECLIPSE", "false" )
+        System.setProperty( "RUN_UNDER_ECLIPSE", "false" )
         HTMLServerImageHandler imageHandler = new HTMLServerImageHandler()
         // for file based output
         // HTMLCompleteImageHandler imageHandler = new HTMLCompleteImageHandler()
@@ -107,15 +102,13 @@ class BirtReportService implements InitializingBean, ApplicationContextAware {
         HTMLRenderOption renderOption = new HTMLRenderOption()
         renderOption.imageHandler = imageHandler
         renderOption.actionHandler = actionHandler
-        def appContext = [:]
-        appContext[DataEngine.MEMORY_BUFFER_SIZE] = grailsApplication.config.birt.cacheSize ?: 100 // default Cache size 100MB
         // appContext[EngineContants.APPCONTEXT_CHART_RESOLUTION] = myvalue
         // Create the engineConfig for the report generator
         def engineConfig = new EngineConfig()
-        engineConfig.appContext = appContext
-		engineConfig.engineHome = ""
+        engineConfig.appContext = [(DataEngine.MEMORY_BUFFER_SIZE): birtConfig.cacheSize ?: 100] // default Cache size 100MB
+        engineConfig.engineHome = ""
         engineConfig.platformContext = new PlatformFileContext(engineConfig)
-        engineConfig.setLogConfig(null, GrailsUtil.isDevelopmentEnv()?Level.ALL:Level.SEVERE)
+        engineConfig.setLogConfig(null, Environment.isDevelopmentMode()?Level.ALL:Level.SEVERE)
         engineConfig.setEmitterConfiguration(RenderOption.OUTPUT_FORMAT_HTML, renderOption)
         BirtEngineFactory.init(engineConfig)
     }
@@ -169,8 +162,8 @@ class BirtReportService implements InitializingBean, ApplicationContextAware {
         def reports = []
         if (reportHome) {
             File reportDir = new File(reportHome,)
-            def files = reportDir?.list().grep { it ==~ /.*\.rptdesign/ };
-            files?.each {
+            def files = reportDir?.list().grep { it ==~ /.*\.rptdesign/ }
+            files.each {
                 def name = it.replace(REPORT_EXT, '')
                 def prop = getReportProperties(name, userProps)
                 prop["name"] = name
@@ -229,8 +222,8 @@ class BirtReportService implements InitializingBean, ApplicationContextAware {
      *  @return List<Map>
      */
     def getReportProperties(reportName, userProps) {
-		getReportProperties(reportName, null, userProps)
-	}
+        getReportProperties(reportName, null, userProps)
+    }
     /**
      *  Returns a map containing the properties of a report design as
      *  name/value pairs. The properties contain the BIRT standart properties:<ul>
@@ -262,9 +255,9 @@ class BirtReportService implements InitializingBean, ApplicationContextAware {
         propnames += [IReportRunnable.AUTHOR, IReportRunnable.BASE_PROP, IReportRunnable.COMMENTS, IReportRunnable.CREATEDBY, IReportRunnable.DESCRIPTION, IReportRunnable.HELP_GUIDE, IReportRunnable.REFRESH_RATE, IReportRunnable.TITLE, IReportRunnable.UNITS]
         try {
             //Open report design
-            IReportRunnable design = inputStream? 
-				BirtEngineFactory.engine?.openReportDesign(reportName, inputStream):
-				BirtEngineFactory.engine?.openReportDesign(reportFileName)
+            IReportRunnable design = inputStream?
+                BirtEngineFactory.engine?.openReportDesign(reportName, inputStream):
+                BirtEngineFactory.engine?.openReportDesign(reportFileName)
             if (!design) return props
             propnames.each {
                 def prop = design.getProperty(it)
@@ -277,11 +270,10 @@ class BirtReportService implements InitializingBean, ApplicationContextAware {
             log.debug "Reportparams:${props}"
             return props
         } catch (Exception e) {
-            log.error("Exception occured while getReportProperties: ${e.message}", e);
-            throw new ServletException(e);
+            log.error("Exception occured while getReportProperties: ${e.message}", e)
+            throw new ServletException(e)
         }
     }
-
 
     /**
      *  Extracts the report parameters of a report design. The returned list contains a map for each parameter
@@ -299,8 +291,8 @@ class BirtReportService implements InitializingBean, ApplicationContextAware {
      *  @return List
      */
     def getReportParams(reportName) {
-		getReportParams(reportName, null)
-	}
+        getReportParams(reportName, null)
+    }
     /**
      *  Extracts the report parameters of a report design. The returned list contains a map for each parameter
      *  containing:<ul>
@@ -326,12 +318,12 @@ class BirtReportService implements InitializingBean, ApplicationContextAware {
             //Open report design
             // def engine = BirtEngineFactory.engine
             if (!BirtEngineFactory.engine) return reportParams
-            IReportRunnable design = inputStream? 
-				BirtEngineFactory.engine?.openReportDesign(reportName, inputStream):
-				BirtEngineFactory.engine?.openReportDesign(reportFileName)
+            IReportRunnable design = inputStream?
+                BirtEngineFactory.engine?.openReportDesign(reportName, inputStream):
+                BirtEngineFactory.engine?.openReportDesign(reportFileName)
             IGetParameterDefinitionTask task = BirtEngineFactory.engine.createGetParameterDefinitionTask(design)
-			task.locale=getLocale()
-            if(useGrailsDatasource) task.getAppContext().put("OdaJDBCDriverPassInConnection", dataSource.getConnection());
+            task.locale=getLocale()
+            if(useGrailsDatasource) task.getAppContext().put("OdaJDBCDriverPassInConnection", dataSource.getConnection())
             // Iterate over all parameters, Don't report about groups
             task.getParameterDefns(false).each {param ->
                 //Group section found
@@ -360,10 +352,10 @@ class BirtReportService implements InitializingBean, ApplicationContextAware {
                     ]
                 }
             }
-            task.close();
+            task.close()
         } catch (Exception e) {
-            log.error("Exception occured while getReportParams: ${e.message}", e);
-            throw new ServletException(e);
+            log.error("Exception occured while getReportParams: ${e.message}", e)
+            throw new ServletException(e)
         }
         return reportParams
     }
@@ -432,7 +424,7 @@ class BirtReportService implements InitializingBean, ApplicationContextAware {
      */
     def getRenderOption(request, format) {
         log.trace "Function: getRenderOption(${request}, ${format})"
-        IRenderOption options = new RenderOption();
+        IRenderOption options = new RenderOption()
         // set an absolute url to be used in output
         if (baseURL =~ /^\w+:\/\//) { // we have a complete URL
             options.baseURL = baseURL
@@ -441,27 +433,27 @@ class BirtReportService implements InitializingBean, ApplicationContextAware {
                 // add the protocol/host/port part of the URL
                 options.baseURL = "${request.getScheme()}://${request.getServerName()}:${request.getServerPort()}"
                 // append application context path either as absolute path or as relative
-                options.baseURL += baseURL[0] == "/" ? baseURL : request.getContextPath() + "/" + baseURL;
+                options.baseURL += baseURL[0] == "/" ? baseURL : request.getContextPath() + "/" + baseURL
             } else
                 options.baseURL = request.contextPath
         } else {
             options.baseURL="/"
         }
         options.actionHandler = new GrailsHTMLActionHandler(options.baseURL, format?:defaultFormat)
-        options.outputFormat = format?:"html";
+        options.outputFormat = format?:"html"
         switch (options.outputFormat.toLowerCase()) {
             case "html":
                 HTMLRenderOption htmlOptions = new HTMLRenderOption(options)
                 htmlOptions.htmlPagination = false
                 htmlOptions.embeddable = false
-                htmlOptions.baseImageURL = this.baseImageURL;
-                htmlOptions.imageDirectory = this.imageDir
+                htmlOptions.baseImageURL = baseImageURL
+                htmlOptions.imageDirectory = imageDir
                 htmlOptions.supportedImageFormats = supportedImageFormats + (svgEnabled ? ";SVG" : "")
                 return htmlOptions
             case "pdf":
-                PDFRenderOption pdfOptions = new PDFRenderOption(options);
-                // pdfOptions.setOption(IPDFRenderOption.PAGE_OVERFLOW, IPDFRenderOption.FIT_TO_PAGE_SIZE);
-                pdfOptions.setOption(IPDFRenderOption.PAGE_OVERFLOW, IPDFRenderOption.OUTPUT_TO_MULTIPLE_PAGES);
+                PDFRenderOption pdfOptions = new PDFRenderOption(options)
+                // pdfOptions.setOption(IPDFRenderOption.PAGE_OVERFLOW, IPDFRenderOption.FIT_TO_PAGE_SIZE)
+                pdfOptions.setOption(IPDFRenderOption.PAGE_OVERFLOW, IPDFRenderOption.OUTPUT_TO_MULTIPLE_PAGES)
                 pdfOptions.supportedImageFormats = supportedImageFormats + (svgEnabled ? ";SVG" : "")
                 return pdfOptions
             default:
@@ -475,8 +467,8 @@ class BirtReportService implements InitializingBean, ApplicationContextAware {
             //get parameter definitions
             // def engine = BirtEngineFactory.engine
             if (!BirtEngineFactory.engine) return null
-			def task = BirtEngineFactory.engine.createGetParameterDefinitionTask(runnable)
-			task.locale=getLocale()
+            def task = BirtEngineFactory.engine.createGetParameterDefinitionTask(runnable)
+            task.locale=getLocale()
             def paramDefs = task.getParameterDefns(false)
             //iterate over each parameter definition, updating as appropriate
             //from the supplied ReportAttributes object
@@ -508,26 +500,26 @@ class BirtReportService implements InitializingBean, ApplicationContextAware {
             }
             return paramMap
         } catch (BirtException e) {
-            // log.error("BIRT Exception occured while getReportBirtParams: ${e.message}", e);
+            // log.error("BIRT Exception occured while getReportBirtParams: ${e.message}", e)
             throw new Exception(e.message)
         }
     }
 
-	/**
-	 * Get the locale of the request or as fallback of the host system
-	 * @return locale
-	 * */
-	def getLocale() {
-		Locale locale = null
-		try {
-			locale = RCU.getLocale(RequestContextHolder.currentRequestAttributes().getSession().request)
-		}
-		catch(java.lang.Exception e){
-			locale = Locale.getDefault()
-		}
-		log.debug "locale: ${locale}"
-		return locale
-	}
+    /**
+     * Get the locale of the request or as fallback of the host system
+     * @return locale
+     * */
+    def getLocale() {
+        Locale locale = null
+        try {
+            locale = RCU.getLocale(RequestContextHolder.currentRequestAttributes().getSession().request)
+        }
+        catch(Exception e){
+            locale = Locale.getDefault()
+        }
+        log.debug "locale: ${locale}"
+        return locale
+    }
 
     /**
      * Runs and renders a report design into the format specified by renderOptions. Parameters are specified as
@@ -539,8 +531,8 @@ class BirtReportService implements InitializingBean, ApplicationContextAware {
      * @return ByteArrayOutputStream
      */
     def runAndRender(reportName, parameters, renderOptions, Locale locale = null) {
-		runAndRender(reportName, null, parameters, renderOptions, locale)
-	}
+        runAndRender(reportName, null, parameters, renderOptions, locale)
+    }
     /**
      * Runs and renders a report design into the format specified by renderOptions. Parameters are specified as
      * name/value pairs and will be parsed (by BIRT) into the appropriate format.
@@ -557,16 +549,16 @@ class BirtReportService implements InitializingBean, ApplicationContextAware {
         log.debug "Parameters are ${parameters}"
         // def engine = BirtEngineFactory.engine
         if (!BirtEngineFactory.engine) return null
-		//Open report design
-		IReportRunnable design = inputStream? 
-			BirtEngineFactory.engine?.openReportDesign(reportName, inputStream):
-			BirtEngineFactory.engine?.openReportDesign(reportFileName)
+        //Open report design
+        IReportRunnable design = inputStream?
+            BirtEngineFactory.engine?.openReportDesign(reportName, inputStream):
+            BirtEngineFactory.engine?.openReportDesign(reportFileName)
         //create task to run and render report
         IRunAndRenderTask task = BirtEngineFactory.engine.createRunAndRenderTask(design)
-		task.locale=locale?:getLocale()
-        def cacheSize = new Integer(grailsApplication.config.birt.cacheSize ?: 100)
+        task.locale=locale?:getLocale()
+        def cacheSize = Integer.valueOf(grailsApplication.config.birt.cacheSize ?: 100)
         log.info "Setting memory buffer to ${cacheSize}MB"
-        task.appContext.put(DataEngine.MEMORY_BUFFER_SIZE, cacheSize);
+        task.appContext.put(DataEngine.MEMORY_BUFFER_SIZE, cacheSize)
         // other options IN_MEMORY_CUBE_SIZE
         def taskParams = getReportBirtParams(parameters, design)
         log.debug "taskParams: ${taskParams}"
@@ -575,7 +567,7 @@ class BirtReportService implements InitializingBean, ApplicationContextAware {
         ByteArrayOutputStream buf = new ByteArrayOutputStream()
         renderOptions.outputStream = buf
         task.renderOption = renderOptions
-        if(useGrailsDatasource) task.getAppContext().put("OdaJDBCDriverPassInConnection", dataSource.getConnection());
+        if(useGrailsDatasource) task.getAppContext().put("OdaJDBCDriverPassInConnection", dataSource.getConnection())
         task.run()
         task.close()
         return buf
@@ -590,9 +582,9 @@ class BirtReportService implements InitializingBean, ApplicationContextAware {
      * @param reportDocumentName
      */
     def run(reportName, parameters, reportDocumentName, Locale locale = null) {
-		run(reportName, parameters, reportDocumentName, locale)
-	}
-	
+        run(reportName, parameters, reportDocumentName, locale)
+    }
+
     /**
      * Runs a report design and generates a reportDocument with the given name. Parameters are specified as
      * name/value pairs and will be parsed (by BIRT) into the appropriate format.
@@ -609,20 +601,20 @@ class BirtReportService implements InitializingBean, ApplicationContextAware {
         // def engine = BirtEngineFactory.engine
         if (!BirtEngineFactory.engine) return null
         //Open report design
-		IReportRunnable design = inputStream? 
-			BirtEngineFactory.engine?.openReportDesign(reportName, inputStream):
-			BirtEngineFactory.engine?.openReportDesign(reportFileName)
+        IReportRunnable design = inputStream?
+            BirtEngineFactory.engine?.openReportDesign(reportName, inputStream):
+            BirtEngineFactory.engine?.openReportDesign(reportFileName)
         //create task to run and render report
         IRunTask task = BirtEngineFactory.engine.createRunTask(design)
-		task.locale=locale?:getLocale()
-        def cacheSize = new Integer(grailsApplication.config.birt.cacheSize ?: 100)
+        task.locale=locale?:getLocale()
+        def cacheSize = Integer.valueOf(grailsApplication.config.birt.cacheSize ?: 100)
         log.info "Setting memory buffer to ${cacheSize}MB"
-        task.appContext.put(DataEngine.MEMORY_BUFFER_SIZE, cacheSize);
+        task.appContext.put(DataEngine.MEMORY_BUFFER_SIZE, cacheSize)
         // other options IN_MEMORY_CUBE_SIZE
         def taskParams = getReportBirtParams(parameters, design)
         log.debug "taskParams: ${taskParams}"
         task.parameterValues = taskParams
-        if(useGrailsDatasource) task.getAppContext().put("OdaJDBCDriverPassInConnection", dataSource.getConnection());
+        if(useGrailsDatasource) task.getAppContext().put("OdaJDBCDriverPassInConnection", dataSource.getConnection())
         task.validateParameters()
         task.run(reportDocumentName)
         task.close()
@@ -637,8 +629,8 @@ class BirtReportService implements InitializingBean, ApplicationContextAware {
      * @param reportDocumentName
      */
     def render(reportDocumentName, parameters, renderOptions, Locale locale = null) {
-		render(reportDocumentName, null, parameters, renderOptions,  locale)
-	}
+        render(reportDocumentName, null, parameters, renderOptions,  locale)
+    }
     /**
      * Renders a report document into the format specified by renderOptions. Parameters are specified as
      * name/value pairs and will be parsed (by BIRT) into the appropriate format.
@@ -654,15 +646,14 @@ class BirtReportService implements InitializingBean, ApplicationContextAware {
         IReportDocument design = BirtEngineFactory.engine.openReportDocument(reportDocumentName)
         //create task to run and render report
         IRenderTask task = BirtEngineFactory.engine.createRenderTask(design)
-		task.locale=locale?:getLocale()
+        task.locale=locale?:getLocale()
         if (parameters) task.parameterValues = parameters
         ByteArrayOutputStream buf = new ByteArrayOutputStream()
         renderOptions.outputStream = buf
         task.renderOption = renderOptions
-        if(useGrailsDatasource) task.getAppContext().put("OdaJDBCDriverPassInConnection", dataSource.getConnection());
+        if(useGrailsDatasource) task.getAppContext().put("OdaJDBCDriverPassInConnection", dataSource.getConnection())
         task.render()
         task.close()
         return buf
     }
-
 }
