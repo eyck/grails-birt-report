@@ -4,5 +4,6 @@
 /test
 /docs
 /grails-birt-report-*.zip
-target-eclipse
+/grails-birt-report-*.zip.sha1
+/target-eclipse
 /.settings
