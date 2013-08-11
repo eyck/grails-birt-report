@@ -3,10 +3,12 @@ grails.project.work.dir = 'target'
 grails.project.dependency.resolution = {
 
     inherits 'global'
-    log 'warn'
+    log 'info'//'warn'
 
     repositories {
-        grailsCentral()
+	// remoced as http://repo.grails.org/grails/core/org/eclipse/birt/runtime/org.apache.poi/3.9.0.v201303080712/org.apache.poi-3.9.0.v201303080712.jar is not valid
+        // grailsCentral()
+	mavenCentral()
         mavenRepo "http://www.it-jw.com/maven"
     }
 
@@ -15,7 +17,7 @@ grails.project.dependency.resolution = {
     }
 
     plugins {
-        build ':release:2.1.0', {
+        build ':release:2.2.1', {
             export = false
         }
     }

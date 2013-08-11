@@ -1,5 +1,5 @@
 class BirtReportGrailsPlugin {
-	def version = "4.3.0.1"
+	def version = "4.3.0.2"
 	def grailsVersion = "2.0 > *"
 	def author = "Eyck Jentzsch"
 	def authorEmail = "eyck@jepemuc.de"
