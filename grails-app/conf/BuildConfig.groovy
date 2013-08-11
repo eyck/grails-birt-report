@@ -3,7 +3,7 @@ grails.project.work.dir = 'target'
 grails.project.dependency.resolution = {
 
     inherits 'global'
-    log 'info'//'warn'
+    log 'warn'
 
     repositories {
 	// remoced as http://repo.grails.org/grails/core/org/eclipse/birt/runtime/org.apache.poi/3.9.0.v201303080712/org.apache.poi-3.9.0.v201303080712.jar is not valid
