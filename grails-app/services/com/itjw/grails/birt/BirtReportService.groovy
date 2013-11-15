@@ -1,5 +1,6 @@
 package com.itjw.grails.birt
 import grails.util.Environment
+import org.eclipse.birt.report.model.api.elements.DesignChoiceConstants
 
 import java.util.logging.Level
 
@@ -344,6 +345,7 @@ class BirtReportService implements InitializingBean, ApplicationContextAware {
                     }
                     reportParams << ['name': param.name,
                             'type': param.dataType,
+                            'paramType': param.scalarParameterType,
                             'controlType': param.controlType,
                             'defaultVal': task.getDefaultValue(param),
                             'helpText': param.helpText,
@@ -462,6 +464,28 @@ class BirtReportService implements InitializingBean, ApplicationContextAware {
         }
     }
 
+    private Object getParamValue(def dataType, def param) {
+        switch (dataType) {
+            case IScalarParameterDefn.TYPE_BOOLEAN:
+                return  DataTypeUtil.toBoolean(param); break
+            case IScalarParameterDefn.TYPE_DATE:
+                return DataTypeUtil.toSqlDate(param); break
+            case IScalarParameterDefn.TYPE_TIME:
+                return DataTypeUtil.toSqlTime(param); break
+            case IScalarParameterDefn.TYPE_DATE_TIME:
+                return DataTypeUtil.toDate(param); break
+            case IScalarParameterDefn.TYPE_DECIMAL:
+                return DataTypeUtil.toBigDecimal(param); break
+            case IScalarParameterDefn.TYPE_FLOAT:
+                return DataTypeUtil.toDouble(param); break
+            case IScalarParameterDefn.TYPE_STRING:
+                return DataTypeUtil.toString(param); break
+            case IScalarParameterDefn.TYPE_INTEGER:
+                return DataTypeUtil.toInteger(param); break
+            default: throw new RuntimeException("Unsupported dataType = " + dataType + ", param " + param)
+        }
+    }
+
     private getReportBirtParams(Map params, IReportRunnable runnable) {
         log.trace "Function: getReportBirtParams(${params}, ${runnable})"
         try {
@@ -478,23 +502,16 @@ class BirtReportService implements InitializingBean, ApplicationContextAware {
                 def paramName = it.name
                 def paramVal
                 if (params.containsKey(paramName)) {
-                    switch (it.dataType) {
-                        case IScalarParameterDefn.TYPE_BOOLEAN:
-                            paramVal = DataTypeUtil.toBoolean(params[paramName]); break
-                        case IScalarParameterDefn.TYPE_DATE:
-                            paramVal = DataTypeUtil.toSqlDate(params[paramName]); break
-                        case IScalarParameterDefn.TYPE_TIME:
-                            paramVal = DataTypeUtil.toSqlTime(params[paramName]); break
-                        case IScalarParameterDefn.TYPE_DATE_TIME:
-                            paramVal = DataTypeUtil.toDate(params[paramName]); break
-                        case IScalarParameterDefn.TYPE_DECIMAL:
-                            paramVal = DataTypeUtil.toBigDecimal(params[paramName]); break
-                        case IScalarParameterDefn.TYPE_FLOAT:
-                            paramVal = DataTypeUtil.toDouble(params[paramName]); break
-                        case IScalarParameterDefn.TYPE_STRING:
-                            paramVal = DataTypeUtil.toString(params[paramName]); break
-                        case IScalarParameterDefn.TYPE_INTEGER:
-                            paramVal = DataTypeUtil.toInteger(params[paramName]); break
+                    def value = params[paramName];
+                    if(value != null) {
+                        if(it.scalarParameterType.equals(DesignChoiceConstants.SCALAR_PARAM_TYPE_MULTI_VALUE)) {
+                            for(int i = 0; i < value.size(); i++) {
+                                value[i] = getParamValue(it.dataType, value[i])
+                            }
+                            paramVal = value
+                        } else {
+                            paramVal = getParamValue(it.dataType, value)
+                        }
                     }
                 }
                 if (paramVal != null) paramMap[paramName] = paramVal
