@@ -81,7 +81,7 @@ class BirtReportService implements InitializingBean, ApplicationContextAware {
         baseImageURL = sc.contextPath + "/images/" + "rpt-img"
         imageDir = sc.getRealPath("/images/" + "rpt")
         if (birtConfig.imageUrl) {
-            if (birtConfig.imageUrl[0] == '/'){
+            if (birtConfig.imageUrl[0] == '/' || birtConfig.imageUrl[1] == ':'){
                 baseImageURL = sc.contextPath + birtConfig.imageUrl
                 imageDir = sc.getRealPath(birtConfig.imageUrl)
             } else {
